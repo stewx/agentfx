@@ -6,7 +6,7 @@
 [![node](https://img.shields.io/node/v/agentfx)](https://www.npmjs.com/package/agentfx)
 [![license](https://img.shields.io/npm/l/agentfx)](LICENSE)
 
-Sound effects for AI coding agents. Bind a sound to "task completed", "after
+Easily add sound effects to your AI coding agents. Bind a sound to "task completed", "after
 tool use" and more, configured via a local web UI.
 
 ## Getting started
