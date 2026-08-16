@@ -8,13 +8,15 @@
  * nothing is drawn by hand, because a harness's logo is the one thing on its
  * panel a reader recognises before they read anything:
  *
- *   claude    code.claude.com, via simple-icons `claudecode`
- *   codex     the OpenAI mark, from developers.openai.com's favicon
- *   opencode  packages/identity/mark.svg, via simple-icons `opencode`
- *   pi        pi.dev/favicon.svg
+ *   claude       code.claude.com, via simple-icons `claudecode`
+ *   codex        the OpenAI mark, from developers.openai.com's favicon
+ *   opencode     packages/identity/mark.svg, via simple-icons `opencode`
+ *   pi           pi.dev/favicon.svg
+ *   antigravity  the arch, taken as the clip path of the colour build of the
+ *                logo — the outline is the file's, not a redraw of it
  *
  * Each carries its vendor's brand colour, as two values: the ink for a light
- * background and the ink for a dark one. Three of the four brands are
+ * background and the ink for a dark one. Three of the five brands are
  * deliberately monochrome — OpenAI's guidelines name black and white as the
  * whole primary palette, and opencode and Pi both ship a white glyph on a
  * near-black tile — so for those the dark value is the vendor's own inverse
@@ -26,11 +28,21 @@
  * JavaScript would need a matchMedia listener and a re-render to follow the
  * reader changing theme mid-session.
  *
- * The only edit made to any of them is on the OpenAI mark, whose coordinates
- * arrive at five decimal places and are rounded to two — a third of the bytes,
- * and a quarter of a pixel at the size this renders.
+ * A mark may name a `gradient` instead of that pair, which is how Antigravity's
+ * gets its colours: flattened to any one of them it stops being recognisable,
+ * which is the whole job of the glyph. It resolves to the same two custom
+ * properties — both set to a `url(#…)` at the paint server — so the stylesheet
+ * keeps deciding what a brand mark is filled with, and nothing downstream has
+ * to know which kind it got.
  *
- * The viewBox travels with the path: these come from four sources and only two
+ * Two of them carry an edit, and only these two. The OpenAI mark's coordinates
+ * arrive at five decimal places and are rounded to two — a third of the bytes,
+ * and a quarter of a pixel at the size this renders. Antigravity's opening
+ * `m` is written as an absolute `M`, which is the same point for a first
+ * subpath and states where the arch starts; every number after it is the
+ * file's.
+ *
+ * The viewBox travels with the path: these come from five sources and only two
  * of them are 24-unit grids, so normalising the coordinates would mean editing
  * the marks. `fill-rule` is evenodd throughout — the counters in the Claude
  * Code, opencode and Pi marks are all holes, and stating it here means an icon
@@ -39,6 +51,43 @@
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
+
+/**
+ * Gradients are referenced by id, and the same mark is drawn twice — once in a
+ * panel heading and once in the nav entry pointing at it — so each instance
+ * defines its own under a number nothing else can collide with. Sharing one id
+ * would render fine until the element that owns it is replaced on a re-render,
+ * at which point the survivor's fill points at nothing.
+ */
+let gradientSeq = 0;
+
+/**
+ * Adds a bottom-to-top gradient to `svg` and returns the `url(#…)` that paints
+ * with it. Units are `objectBoundingBox` by default, so the stops span the mark
+ * itself whatever the viewBox happens to be, and the axis is stated because the
+ * SVG default runs left to right.
+ */
+function gradientPaint(svg, stops) {
+  const id = `agentfx-mark-${(gradientSeq += 1)}`;
+  const defs = document.createElementNS(SVG_NS, 'defs');
+  const gradient = document.createElementNS(SVG_NS, 'linearGradient');
+  gradient.setAttribute('id', id);
+  gradient.setAttribute('x1', '0');
+  gradient.setAttribute('y1', '1');
+  gradient.setAttribute('x2', '0');
+  gradient.setAttribute('y2', '0');
+
+  for (const { offset, color } of stops) {
+    const stop = document.createElementNS(SVG_NS, 'stop');
+    stop.setAttribute('offset', offset);
+    stop.setAttribute('stop-color', color);
+    gradient.append(stop);
+  }
+
+  defs.append(gradient);
+  svg.append(defs);
+  return `url(#${id})`;
+}
 
 const marks = {
   claude: {
@@ -87,6 +136,30 @@ const marks = {
     dark: '#ffffff',
     viewBox: '0 0 24 24',
     path: 'M22 24H2V0h20zM17 4.8H7v14.4h10z'
+  },
+  antigravity: {
+    /*
+     * The logo fills this arch with a mesh of heavily blurred colour blobs,
+     * which is not something an inline path can carry. What the eye takes from
+     * it is a climb — blue along the feet, green and yellow up the flanks, red
+     * at the apex — so that is what the four stops reproduce, in the file's own
+     * colours and in the direction they actually run. It is the reading that
+     * survives being rendered at 16px in a nav.
+     */
+    gradient: [
+      { offset: '0%', color: '#3186ff' },
+      { offset: '52%', color: '#00b95c' },
+      { offset: '80%', color: '#ffe432' },
+      { offset: '100%', color: '#fc413d' }
+    ],
+    viewBox: '0 0 250 250',
+    path:
+      'M226.57 235.49c13.96 10.47 34.9 3.49 15.71-15.71' +
+      'c-57.59-55.82-45.36-209.36-116.89-209.36' +
+      'c-71.54 0-59.33 153.54-116.9 209.37' +
+      'c-20.94 20.93 1.74 26.16 15.7 15.69' +
+      'c54.08-36.64 50.59-101.19 101.2-101.19' +
+      'c50.59 0 47.1 64.55 101.18 101.2z'
   },
   pi: {
     // Same arrangement as opencode, over pi.dev's own #09090b.
@@ -154,9 +227,12 @@ export function icon(name) {
   // some browsers; it costs one attribute to keep it out.
   svg.setAttribute('focusable', 'false');
   if (brand) {
-    // The stylesheet decides which of the two the current theme wants.
-    svg.style.setProperty('--brand', brand.light);
-    svg.style.setProperty('--brand-dark', brand.dark);
+    // The stylesheet decides which of the two the current theme wants. A
+    // gradient answers both: its colours are chosen to read on either ground,
+    // exactly as Claude's clay does.
+    const paint = brand.gradient ? gradientPaint(svg, brand.gradient) : null;
+    svg.style.setProperty('--brand', paint ?? brand.light);
+    svg.style.setProperty('--brand-dark', paint ?? brand.dark);
   }
 
   const path = document.createElementNS(SVG_NS, 'path');

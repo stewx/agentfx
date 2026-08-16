@@ -20,17 +20,23 @@ export function sandbox(label = 'test') {
   const home = path.join(root, 'agentfx');
   const claudeDir = path.join(root, 'claude');
   const codexDir = path.join(root, 'codex');
+  // Antigravity's customization root, with its install directory beside it —
+  // the real layout, so `detect` looks for the sibling inside the sandbox
+  // rather than in the caller's home.
+  const antigravityDir = path.join(root, 'gemini', 'config');
   // PI_CODING_AGENT_DIR points at ~/.pi/agent, not ~/.pi.
   const piDir = path.join(root, 'pi', 'agent');
   const opencodeDir = path.join(root, 'opencode');
   const settingsFile = path.join(claudeDir, 'settings.json');
   const codexHooksFile = path.join(codexDir, 'hooks.json');
+  const antigravityHooksFile = path.join(antigravityDir, 'hooks.json');
   const piExtensionFile = path.join(piDir, 'extensions', 'agentfx.ts');
   const opencodePluginFile = path.join(opencodeDir, 'plugin', 'agentfx.js');
 
   fs.mkdirSync(home, { recursive: true });
   fs.mkdirSync(claudeDir, { recursive: true });
   fs.mkdirSync(codexDir, { recursive: true });
+  fs.mkdirSync(antigravityDir, { recursive: true });
   fs.mkdirSync(piDir, { recursive: true });
   fs.mkdirSync(opencodeDir, { recursive: true });
 
@@ -40,12 +46,15 @@ export function sandbox(label = 'test') {
     AGENTFX_HOME: process.env.AGENTFX_HOME,
     CLAUDE_CONFIG_DIR: process.env.CLAUDE_CONFIG_DIR,
     CODEX_HOME: process.env.CODEX_HOME,
+    AGENTFX_ANTIGRAVITY_DIR: process.env.AGENTFX_ANTIGRAVITY_DIR,
     PI_CODING_AGENT_DIR: process.env.PI_CODING_AGENT_DIR,
     OPENCODE_CONFIG_DIR: process.env.OPENCODE_CONFIG_DIR
   };
   process.env.AGENTFX_HOME = home;
   process.env.CLAUDE_CONFIG_DIR = claudeDir;
   process.env.CODEX_HOME = codexDir;
+  // Antigravity documents no override of its own, so this one is agentfx's.
+  process.env.AGENTFX_ANTIGRAVITY_DIR = antigravityDir;
   process.env.PI_CODING_AGENT_DIR = piDir;
   process.env.OPENCODE_CONFIG_DIR = opencodeDir;
 
@@ -60,6 +69,7 @@ export function sandbox(label = 'test') {
   const managed = {
     Settings: { file: settingsFile, json: true },
     CodexHooks: { file: codexHooksFile, json: true },
+    AntigravityHooks: { file: antigravityHooksFile, json: true },
     PiExtension: { file: piExtensionFile },
     OpencodePlugin: { file: opencodePluginFile }
   };
@@ -83,8 +93,10 @@ export function sandbox(label = 'test') {
     home,
     claudeDir,
     codexDir,
+    antigravityDir,
     settingsFile,
     codexHooksFile,
+    antigravityHooksFile,
     piDir,
     piExtensionFile,
     opencodeDir,
@@ -97,6 +109,7 @@ export function sandbox(label = 'test') {
       AGENTFX_HOME: home,
       CLAUDE_CONFIG_DIR: claudeDir,
       CODEX_HOME: codexDir,
+      AGENTFX_ANTIGRAVITY_DIR: antigravityDir,
       PI_CODING_AGENT_DIR: piDir,
       OPENCODE_CONFIG_DIR: opencodeDir
     },

@@ -29,6 +29,7 @@ import { agents } from '../../src/agents/index.js';
 const UNSYNCABLE = {
   claude: '{ not json at all',
   codex: '{ not json at all',
+  antigravity: '{ not json at all',
   opencode: 'export const SomeoneElsesPlugin = async () => ({});\n',
   pi: 'export default function (pi) {}\n'
 };

@@ -24,6 +24,8 @@ This will launch the Web UI for choosing your sounds. Pick a sound effect per ev
 
 ✅ Codex CLI
 
+✅ Antigravity CLI
+
 ✅ opencode 
 
 ✅ Pi
@@ -86,7 +88,7 @@ agentfx target rm <id>         Stop managing one, cleaning up its hooks first
 
   -p, --port <n>     Port for the web UI (default 4477; scans upward if taken)
       --no-open      Do not launch a browser
-      --agent <id>   claude | codex | opencode | pi
+      --agent <id>   claude | codex | antigravity | opencode | pi
       --scope <s>    user | local | project | custom  (for `target add`)
       --dir <path>   Project directory or custom path (for `target add`)
       --verbose      With play: explain what it resolved and did
@@ -103,10 +105,11 @@ agentfx target rm <id>         Stop managing one, cleaning up its hooks first
 <details>
 <summary><b>Where the hooks get written</b></summary>
 
-| | Claude Code | Codex CLI | opencode | Pi |
-| --- | --- | --- | --- | --- |
-| Mechanism | JSON hook entries | JSON hook entries | a generated plugin | a generated extension |
-| Tool matcher | tool name (`Bash\|Edit`) | regex (`^Bash$`) | none | none |
+| | Claude Code | Codex CLI | Antigravity CLI | opencode | Pi |
+| --- | --- | --- | --- | --- | --- |
+| Mechanism | JSON hook entries | JSON hook entries | JSON hook entries, under an `agentfx` hook group | a generated plugin | a generated extension |
+| Hook waits for the sound? | no (`async`) | no (`async`) | yes — bounded by a 5s `timeout`, since it has no `async` | no | no |
+| Tool matcher | tool name (`Bash\|Edit`) | regex (`^Bash$`) | regex (`run_command`) | none | none |
 
 Those go to each harness's global config by default. You can target any number
 of files instead — or as well — from the **Settings files** section of the UI,
@@ -116,7 +119,7 @@ or with `agentfx target add`:
 | --- | --- | --- |
 | `user` | the agent's global config, above | Every project, just you |
 | `local` | `<dir>/.claude/settings.local.json` | One project, just you — gitignored. **Claude Code only** |
-| `project` | `<dir>/.claude/settings.json`, `<dir>/.codex/hooks.json`, `<dir>/.opencode/plugin/agentfx.js`, `<dir>/.pi/extensions/agentfx.ts` | One project, and usually committed |
+| `project` | `<dir>/.claude/settings.json`, `<dir>/.codex/hooks.json`, `<dir>/.agents/hooks.json`, `<dir>/.opencode/plugin/agentfx.js`, `<dir>/.pi/extensions/agentfx.ts` | One project, and usually committed |
 | `custom` | anything you point at | — |
 
 Your sound choices are global; targets decide only *where* hooks are written.
@@ -130,9 +133,11 @@ them. One unparseable file does not block the others.
 **Your files are safe:** agentfx preserves everything else in the file
 (including your own hooks), only ever replaces entries it recognises as its own,
 saves a `<file>.agentfx-backup` the first time it writes, and reports invalid
-JSON rather than overwriting it. opencode and Pi have no hook config at all, so
-agentfx generates a module for those — and refuses to touch a file of that name
-that it did not write.
+JSON rather than overwriting it. Antigravity's hooks.json is keyed by hook name,
+and agentfx writes exactly one of those keys — `agentfx` — leaving any hook you
+wrote yourself, and its `enabled` flag, alone. opencode and Pi have no hook
+config at all, so agentfx generates a module for those — and refuses to touch a
+file of that name that it did not write.
 
 </details>
 
@@ -144,6 +149,13 @@ that it did not write.
 
 **Codex CLI** — the same nine minus `Notification`, plus `PermissionRequest`,
 `SubagentStart` and `PostCompact`.
+
+**Antigravity CLI** — `Stop` (the "done" one), `PostToolUse`, `PreToolUse`,
+`PostInvocation`, `PreInvocation`. All five of its hook events; the matcher is
+only offered on the two tool ones, because Antigravity ignores it on the rest.
+Note that its hooks run without a shell — the command is split on whitespace and
+executed — so agentfx writes an unquoted command there, and a path containing a
+space cannot be expressed. `agentfx doctor` says so if yours has one.
 
 **opencode** — `session.idle` (the "done" one), `permission.asked`,
 `session.error`, `tool.execute.after`, `tool.execute.before`, `file.edited`,
@@ -160,7 +172,8 @@ a decision.
 
 **Rate limiting.** Each binding takes a gap of 1, 2, 5, 10, 30 or 60 seconds, or
 *every time*. New bindings default to every time, except the chatty ones —
-`PostToolUse`, `PreToolUse`, opencode's `tool.execute.*` and `file.edited`, Pi's
+`PostToolUse`, `PreToolUse`, Antigravity's `Pre`/`PostInvocation`, opencode's
+`tool.execute.*` and `file.edited`, Pi's
 `tool_execution_*` — which start at one play every 2 seconds, because a cue on
 each fire overlaps itself into noise within the first task. agentfx only seeds
 that value on creation and never overrides one you set.
@@ -211,6 +224,7 @@ asked for 20% is worse than silence.
 | `AGENTFX_PORT` | Default port for the web UI |
 | `CLAUDE_CONFIG_DIR` | Locate `settings.json` when Claude Code is not in `~/.claude` |
 | `CODEX_HOME` | Locate `hooks.json` when Codex is not in `~/.codex` |
+| `AGENTFX_ANTIGRAVITY_DIR` | Locate Antigravity's global customization root when it is not `~/.gemini/config`. agentfx's own variable — Antigravity documents no override of its own |
 | `OPENCODE_CONFIG_DIR` | Locate the plugin dir when opencode is not in `~/.config/opencode` (`XDG_CONFIG_HOME` honoured too) |
 | `PI_CODING_AGENT_DIR` | Locate the extensions dir when Pi is not in `~/.pi/agent` |
 

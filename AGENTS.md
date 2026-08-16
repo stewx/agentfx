@@ -118,9 +118,14 @@ five that execute lines.
 Tests must never read or write `~/.agentfx`, `~/.claude`, or any real settings
 file. Always go through `test/helpers/sandbox.js`, which points `AGENTFX_HOME`
 and every agent's config-directory variable (`CLAUDE_CONFIG_DIR`, `CODEX_HOME`,
-`OPENCODE_CONFIG_DIR`, `PI_CODING_AGENT_DIR`) at a fresh temp directory. Adding
-an agent means adding its variable there too, or a `sync` that covers every
-agent reaches the real one:
+`AGENTFX_ANTIGRAVITY_DIR`, `OPENCODE_CONFIG_DIR`, `PI_CODING_AGENT_DIR`) at a
+fresh temp directory. Adding an agent means adding its variable there too, or a
+`sync` that covers every agent reaches the real one. Where the agent documents
+no override — Antigravity's customization root is fixed at `~/.gemini/config` —
+the adapter declares one of agentfx's own, because a config directory that
+cannot be redirected is a config directory the tests would write to for real.
+Anything else the adapter needs from that home is derived from the same
+variable, `detect`'s look at the install directory included:
 
 ```js
 import { sandbox } from '../helpers/sandbox.js';
@@ -203,6 +208,12 @@ rules below), *and* the hook entry carries `"async": true`, which both Claude
 Code and Codex honour by not waiting for the hook process at all. Without the
 flag the agent still waits ~85ms for Node to start and resolve the binding, for
 no benefit. Check for an equivalent flag when adding a new agent adapter.
+
+Where an agent has no such flag, bound the wait instead: Antigravity awaits
+every hook up to its `timeout`, so that adapter writes a short one rather than
+inheriting the 30-second default. That is damage control, not a fix — the ~85ms
+is unavoidable there, and a hook that hangs must not hold somebody's agent for
+half a minute over a sound effect.
 
 **Never play a sound at a volume the user did not choose.** A backend that
 cannot honour the configured gain must not be used, even as a last-resort
@@ -553,11 +564,36 @@ target is forgotten, or they are orphaned with no way to find them again.
 
 ### Adapters differ more than you expect
 
-Read all four before adding a fifth. They fall into two families:
+Read all five before adding a sixth. They fall into two families:
 
-- **JSON hook entries.** Claude Code and Codex store them in the same shape, so
-  they share `json-hooks.js` and differ only in paths, event names and matcher
-  dialect.
+- **JSON hook entries.** Claude Code, Codex and Antigravity store them in the
+  same shape, so they share `json-hooks.js` and differ only in paths, event
+  names, matcher dialect, what each hook entry carries (`async: true` where the
+  agent honours it, a timeout where it does not) and — for Antigravity —
+  `container`, the top-level key the event map hangs off. Antigravity's
+  hooks.json is keyed by hook *name* first, so several unrelated hooks share one
+  file; agentfx owns the key named `agentfx` and edits nothing outside it, which
+  includes leaving an `enabled: false` somebody set on our own group in place.
+
+  Antigravity also takes two *shapes*: its tool events are grouped under
+  `matcher`/`hooks`, and `Stop`, `PreInvocation` and `PostInvocation` are flat
+  handler objects directly under the event key (`flat: true` on the event).
+  Getting this wrong is not a partial failure — the entry is rejected for having
+  no `command`, and one rejected entry fails the whole file, so the user's own
+  hooks stop running too.
+
+  And it runs hooks **without a shell**, contrary to its own documentation:
+  the command is split on whitespace and exec'd, with the working directory set
+  to the hooks.json directory. A shell-quoted path arrives with its quotes
+  attached, so that adapter passes `prefixFor` to write the argv unquoted — and
+  exports `commandProblem`, which `doctor` renders, because a path containing a
+  space cannot be expressed there at all.
+
+**Verify an agent's format against the agent, not its docs.** All three of these
+were found by reading the strings in the shipped `agy.exe` and then running it:
+the published docs give the global hooks path two different ways, and describe a
+shell that is not used. A hook written from documentation alone looks installed
+and makes no sound.
 - **Generated modules.** opencode and Pi have no hook configuration at all —
   plugins and extensions subscribe to events in code — so `opencode.js` and
   `pi.js` generate a file each and share `generated-file.js`, which owns the

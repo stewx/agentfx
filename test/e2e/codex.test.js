@@ -34,7 +34,13 @@ test('state exposes every agent with its own events', async (t) => {
   const { box, state } = await serve(t, 'codex-state');
   const payload = await state();
 
-  assert.deepEqual(payload.agents.map((a) => a.id), ['claude', 'codex', 'opencode', 'pi']);
+  assert.deepEqual(payload.agents.map((a) => a.id), [
+    'claude',
+    'codex',
+    'antigravity',
+    'opencode',
+    'pi'
+  ]);
 
   const codex = payload.agents.find((a) => a.id === 'codex');
   assert.equal(codex.name, 'Codex CLI');

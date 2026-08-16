@@ -5,6 +5,7 @@ import path from 'node:path';
 import { commandStatus } from '../../src/cli/status.js';
 import { loadConfig } from '../../src/config.js';
 import * as claude from '../../src/agents/claude.js';
+import { agents } from '../../src/agents/index.js';
 import { sandbox, boundConfig } from '../helpers/sandbox.js';
 import { captureConsole } from '../helpers/console.js';
 
@@ -174,7 +175,7 @@ test('an agent with nothing bound says so instead of leaving a gap', async (t) =
 
   const { linesMatching } = await captureConsole(() => commandStatus());
 
-  assert.equal(linesMatching(/bindings {2}none/).length, 4, 'once per agent');
+  assert.equal(linesMatching(/bindings {2}none/).length, agents.length, 'once per agent');
 });
 
 test('a binding installed in some files but not others reports the fraction', async (t) => {

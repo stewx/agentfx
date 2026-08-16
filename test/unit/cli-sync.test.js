@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { commandSync } from '../../src/cli/sync.js';
 import { loadConfig } from '../../src/config.js';
 import { hookShimPath } from '../../src/hook-shim.js';
+import { agents } from '../../src/agents/index.js';
 import { sandbox, boundConfig } from '../helpers/sandbox.js';
 import { captureConsole } from '../helpers/console.js';
 
@@ -33,9 +34,9 @@ test('every agent is named, with what was written into each of its files', async
   assert.equal(exitCode, undefined, 'nothing failed');
   assert.match(stdout, /^ {2}Claude Code$/m);
   assert.match(stdout, /✓ .*settings\.json — 2 hook\(s\): Stop, Notification/);
-  // The other three agents have nothing bound, so they report their file as
-  // untouched rather than being left out.
-  assert.equal(stdout.match(/· .* — no hooks/g).length, 3);
+  // Every other agent has nothing bound, so each reports its file as untouched
+  // rather than being left out.
+  assert.equal(stdout.match(/· .* — no hooks/g).length, agents.length - 1);
 });
 
 test('a file that cannot be parsed fails that file, the exit code, and nothing else', async (t) => {

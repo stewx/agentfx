@@ -8,12 +8,15 @@ import { hookPrefix } from '../hook-command.js';
 import { asStatusTargets, makeTargetSurface, syncTargets } from './multi-target.js';
 
 /**
- * Claude Code and Codex CLI both store hooks as JSON in the same shape:
+ * Claude Code, Codex CLI and Antigravity CLI all store hooks as JSON in the
+ * same shape:
  *
  *   { "hooks": { "<Event>": [ { "matcher": "...", "hooks": [ {type, command} ] } ] } }
  *
  * so the read-modify-write logic lives here once and each adapter supplies
- * only what differs: which file, which events, and how a matcher is spelled.
+ * only what differs: which file, which events, how a matcher is spelled, and —
+ * for Antigravity, whose file is keyed by hook *name* rather than by a single
+ * `hooks` object — which top-level key holds that event map (`container`).
  */
 
 /**
@@ -69,8 +72,21 @@ export function isAgentfxCommand(command) {
   return typeof command === 'string' && HOOK_PATTERN.test(command);
 }
 
+/**
+ * The handlers an entry holds, whichever of the two shapes it is in.
+ *
+ * Claude and Codex group every event: `{ matcher, hooks: [ … ] }`. Antigravity
+ * groups only the tool events and takes the rest as a flat list of handler
+ * objects — `{ type, command }` directly under the event key — which the event
+ * descriptor marks with `flat`. A flat entry is its own only handler.
+ */
+function handlersOf(entry) {
+  if (Array.isArray(entry?.hooks)) return entry.hooks;
+  return entry && typeof entry === 'object' ? [entry] : [];
+}
+
 function isOurs(entry) {
-  return entry?.hooks?.some?.((hook) => isAgentfxCommand(hook?.command)) ?? false;
+  return handlersOf(entry).some((hook) => isAgentfxCommand(hook?.command));
 }
 
 /** Drops agentfx hooks from one event array, leaving user hooks untouched. */
@@ -79,7 +95,9 @@ function stripOurHooks(entries) {
   return entries
     .map((entry) => {
       if (!isOurs(entry)) return entry;
-      // The group may also hold user hooks; keep those and drop only ours.
+      // A flat entry is the handler, so ours goes whole; a group may also hold
+      // the user's, and those are kept.
+      if (!Array.isArray(entry.hooks)) return null;
       const kept = entry.hooks.filter((hook) => !isAgentfxCommand(hook?.command));
       return kept.length ? { ...entry, hooks: kept } : null;
     })
@@ -127,6 +145,8 @@ async function writeHooksFile(file, settings) {
  * @param {string} options.agentId       written into the command
  * @param {(matcher: string) => string|undefined} options.matcherFor
  *        how this agent spells "match everything" for a blank matcher
+ * @param {string} [options.container]   top-level key holding the event map
+ * @param {object} [options.hookFields]  extra fields on each hook entry
  * @param {boolean} [options.remove]     strip everything instead of applying
  */
 export async function syncHooksFile({
@@ -136,18 +156,22 @@ export async function syncHooksFile({
   prefix,
   agentId,
   matcherFor,
+  container = 'hooks',
+  hookFields = ASYNC_HOOK,
   remove = false
 }) {
   const { settings, existed } = await readHooksFile(file);
   const before = JSON.stringify(settings);
 
-  const hadHooksKey = Object.prototype.hasOwnProperty.call(settings, 'hooks');
-  settings.hooks = settings.hooks && typeof settings.hooks === 'object' ? settings.hooks : {};
+  const hadHooksKey = Object.prototype.hasOwnProperty.call(settings, container);
+  const existing = settings[container];
+  const hooks = existing && typeof existing === 'object' ? existing : {};
+  settings[container] = hooks;
   const applied = [];
   const removed = [];
 
   for (const event of events) {
-    const original = settings.hooks[event.id];
+    const original = hooks[event.id];
     const remaining = stripOurHooks(original);
     const binding = bindings?.[event.id];
     const active = !remove && isLive(binding);
@@ -156,16 +180,26 @@ export async function syncHooksFile({
       // The agent id is part of the command so a second agent's hooks cannot
       // resolve against this one's bindings.
       //
-      // `async: true` is what keeps a sound effect off the agent's critical
-      // path: both Claude Code and Codex run the hook in the background and
-      // carry on rather than waiting for it. Older versions that do not know
-      // the field simply ignore it and run the hook as before.
-      const entry = {
-        hooks: [{ type: 'command', command: `${prefix} play ${agentId} ${event.id}`, async: true }]
+      // `hookFields` is how an agent is told not to wait for the sound —
+      // `async: true` where the agent understands it, a short timeout where it
+      // does not (see ASYNC_HOOK below).
+      const handler = {
+        type: 'command',
+        command: `${prefix} play ${agentId} ${event.id}`,
+        ...hookFields
       };
-      if (event.matcher) {
-        const matcher = matcherFor(binding.matcher?.trim() ?? '');
-        if (matcher !== undefined) entry.matcher = matcher;
+
+      // An event that takes a flat list gets the handler itself. Wrapping it
+      // anyway is not a harmless extra: Antigravity rejects the entry for
+      // having no `command`, and a single rejected entry fails the whole file,
+      // taking the user's own hooks down with ours.
+      let entry = handler;
+      if (!event.flat) {
+        entry = { hooks: [handler] };
+        if (event.matcher) {
+          const matcher = matcherFor(binding.matcher?.trim() ?? '');
+          if (matcher !== undefined) entry.matcher = matcher;
+        }
       }
       remaining.push(entry);
       applied.push(event.id);
@@ -173,14 +207,16 @@ export async function syncHooksFile({
       removed.push(event.id);
     }
 
-    if (remaining.length) settings.hooks[event.id] = remaining;
-    else delete settings.hooks[event.id];
+    if (remaining.length) hooks[event.id] = remaining;
+    else delete hooks[event.id];
   }
 
   // Drop an empty hooks object only if we emptied it, or if we were the ones
-  // who added the key — an untouched `"hooks": {}` is the user's to keep.
+  // who added the key — an untouched `"hooks": {}` is the user's to keep. Keys
+  // that are not events, such as Antigravity's per-hook `enabled`, count as
+  // content: the group stays, because switching it off was the user's decision.
   const touched = applied.length > 0 || removed.length > 0;
-  if (!Object.keys(settings.hooks).length && (touched || !hadHooksKey)) delete settings.hooks;
+  if (!Object.keys(hooks).length && (touched || !hadHooksKey)) delete settings[container];
 
   // Don't touch the file when nothing changed, and never create one just to
   // write an empty object into it (common when uninstalling a clean install).
@@ -198,17 +234,20 @@ export async function syncHooksFile({
  * reading and parsing every settings file twice per agent, and then re-joining
  * the two views by target id at the call site.
  */
-async function inspectHooksFile(file, eventIds) {
+async function inspectHooksFile(file, eventIds, container) {
   try {
     const { settings, existed } = await readHooksFile(file);
-    const ours = Object.entries(settings.hooks ?? {}).filter(([event]) => eventIds.has(event));
+    const group = settings[container];
+    const ours = Object.entries(group && typeof group === 'object' ? group : {}).filter(
+      ([event]) => eventIds.has(event)
+    );
 
     return {
       exists: existed,
       installed: ours.filter(([, entries]) => entries.some(isOurs)).map(([event]) => event),
       commands: ours.flatMap(([event, entries]) =>
         (Array.isArray(entries) ? entries : [])
-          .flatMap((entry) => entry?.hooks ?? [])
+          .flatMap(handlersOf)
           .filter((hook) => isAgentfxCommand(hook?.command))
           .map((hook) => ({ event, command: hook.command }))
       )
@@ -225,11 +264,14 @@ async function inspectHooksFile(file, eventIds) {
  * now. `doctor` compares the two — they diverge when the package moves, leaving
  * hooks that run and fail rather than hooks that are missing.
  */
-export async function hooksInspect({ targets, eventIds, prefix }) {
+export async function hooksInspect({ targets, eventIds, prefix, container = 'hooks' }) {
   return {
     expected: prefix,
     targets: await Promise.all(
-      targets.map(async (target) => ({ ...target, ...(await inspectHooksFile(target.path, eventIds)) }))
+      targets.map(async (target) => ({
+        ...target,
+        ...(await inspectHooksFile(target.path, eventIds, container))
+      }))
     )
   };
 }
@@ -243,10 +285,21 @@ export async function hooksInspect({ targets, eventIds, prefix }) {
  * filter, which is two implementations of what "installed" means held together
  * by nothing but a test.
  */
-export async function hooksStatus(targets, eventIds) {
-  const { targets: inspected } = await hooksInspect({ targets, eventIds });
+export async function hooksStatus(targets, eventIds, container = 'hooks') {
+  const { targets: inspected } = await hooksInspect({ targets, eventIds, container });
   return asStatusTargets(inspected);
 }
+
+/**
+ * How an agent is told not to make its user wait for a sound effect.
+ *
+ * Claude Code and Codex both understand `async: true`: they run the hook in the
+ * background and carry on. Older versions that do not know the field simply
+ * ignore it and run the hook as before. Antigravity has no such flag — it
+ * awaits every hook — so its adapter passes a short timeout instead, which
+ * bounds the damage rather than avoiding it.
+ */
+export const ASYNC_HOOK = { async: true };
 
 /**
  * The whole adapter surface for an agent that stores hooks as JSON.
@@ -263,6 +316,10 @@ export async function hooksStatus(targets, eventIds) {
  * @param {() => string} options.defaultSettingsPath
  * @param {() => boolean} options.detect
  * @param {(matcher: string) => string|undefined} options.matcherFor
+ * @param {string} [options.container]   top-level key holding the event map
+ * @param {object} [options.hookFields]  extra fields on each hook entry
+ * @param {(config: object) => string} [options.prefixFor] how this agent needs
+ *        the command spelled; defaults to the shell-quoted form
  * @param {boolean} [options.legacySettingsPath] honour the pre-multi-target field
  */
 export function makeHooksAdapter({
@@ -272,6 +329,9 @@ export function makeHooksAdapter({
   defaultSettingsPath,
   detect,
   matcherFor,
+  container = 'hooks',
+  hookFields = ASYNC_HOOK,
+  prefixFor = hookPrefix,
   legacySettingsPath = false
 }) {
   const eventIds = new Set(events.map((event) => event.id));
@@ -283,7 +343,7 @@ export function makeHooksAdapter({
   });
 
   function sync(config, { remove = false } = {}) {
-    const prefix = hookPrefix(config);
+    const prefix = prefixFor(config);
     const bindings = config.bindings?.[id] ?? {};
 
     return syncTargets(listTargets(config), (target) =>
@@ -294,6 +354,8 @@ export function makeHooksAdapter({
         prefix,
         agentId: id,
         matcherFor,
+        container,
+        hookFields,
         remove: remove || !target.enabled
       })
     );
@@ -302,7 +364,7 @@ export function makeHooksAdapter({
   /** Which events have an agentfx hook installed, per managed settings file. */
   async function status(config) {
     return {
-      targets: await hooksStatus(listTargets(config), eventIds),
+      targets: await hooksStatus(listTargets(config), eventIds, container),
       scopes,
       detected: detect()
     };
@@ -314,7 +376,12 @@ export function makeHooksAdapter({
    */
   async function inspect(config) {
     return {
-      ...(await hooksInspect({ targets: listTargets(config), eventIds, prefix: hookPrefix(config) })),
+      ...(await hooksInspect({
+        targets: listTargets(config),
+        eventIds,
+        prefix: prefixFor(config),
+        container
+      })),
       detected: detect()
     };
   }

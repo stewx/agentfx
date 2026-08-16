@@ -25,6 +25,7 @@ Usage
 Agents
   claude                         Claude Code — ~/.claude/settings.json
   codex                          Codex CLI — ~/.codex/hooks.json
+  antigravity                    Antigravity CLI — ~/.gemini/config/hooks.json
   opencode                       opencode — ~/.config/opencode/plugin/agentfx.js
   pi                             Pi — ~/.pi/agent/extensions/agentfx.ts
 

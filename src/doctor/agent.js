@@ -54,6 +54,13 @@ export async function agentSection(agent, config) {
       : info('Detected', 'not detected on this machine — hooks can still be written')
   );
 
+  // An adapter may know something about its agent that makes the command agentfx
+  // would write unrunnable there — Antigravity's shell-less executor cannot take
+  // a path with a space in it, and no quoting will save it. Optional: an agent
+  // with nothing to say about its command exports nothing.
+  const problem = agent.commandProblem?.(config);
+  if (problem) checks.push(warn('Hook command', problem));
+
   const wanted = liveEvents(agent.events, config.bindings?.[agent.id]);
   if (!targets.length) {
     checks.push(warn('Settings files', 'none targeted — nothing will ever be written'));

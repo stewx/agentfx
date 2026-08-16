@@ -249,7 +249,10 @@ test('a panel’s anchor and its collapsible body are distinct ids', () => {
   assert.notEqual(bodyId('claude'), sectionId('claude'));
   assert.ok(bodyId('claude').startsWith(sectionId('claude')), 'derived, not composed apart');
 
-  const ids = ['claude', 'codex', 'opencode', 'pi'].flatMap((id) => [sectionId(id), bodyId(id)]);
+  const ids = ['claude', 'codex', 'antigravity', 'opencode', 'pi'].flatMap((id) => [
+    sectionId(id),
+    bodyId(id)
+  ]);
   assert.equal(new Set(ids).size, ids.length, 'no two panels claim the same id');
 });
 

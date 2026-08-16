@@ -26,6 +26,7 @@ process.env.CLAUDE_CONFIG_DIR = path.join(root, 'claude');
 // `uninstall` below covers every agent, not just Claude, so every agent's
 // config root has to be redirected or it would strip the runner's real hooks.
 process.env.CODEX_HOME = path.join(root, 'codex');
+process.env.AGENTFX_ANTIGRAVITY_DIR = path.join(root, 'gemini', 'config');
 process.env.OPENCODE_CONFIG_DIR = path.join(root, 'opencode');
 process.env.PI_CODING_AGENT_DIR = path.join(root, 'pi', 'agent');
 fs.mkdirSync(process.env.CLAUDE_CONFIG_DIR, { recursive: true });
