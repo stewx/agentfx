@@ -1,5 +1,11 @@
 # agentfx
 
+[![CI](https://github.com/stewx/agentfx/actions/workflows/ci.yml/badge.svg)](https://github.com/stewx/agentfx/actions/workflows/ci.yml)
+[![npm](https://img.shields.io/npm/v/agentfx)](https://www.npmjs.com/package/agentfx)
+[![downloads](https://img.shields.io/npm/dm/agentfx)](https://www.npmjs.com/package/agentfx)
+[![node](https://img.shields.io/node/v/agentfx)](https://www.npmjs.com/package/agentfx)
+[![license](https://img.shields.io/npm/l/agentfx)](LICENSE)
+
 Sound effects for AI coding agents. Bind a sound to "task completed", "after
 tool use" and more, configured via a local web UI.
 
