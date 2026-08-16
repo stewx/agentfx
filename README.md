@@ -9,7 +9,14 @@
 Sound effects for AI coding agents. Bind a sound to "task completed", "after
 tool use" and more, configured via a local web UI.
 
-Every harness below works side by side, each with its own configu:
+## Getting started
+
+```sh
+npm install -g agentfx
+agentfx
+```
+
+This will launch the Web UI for choosing your sounds. Pick a sound effect per event, set volume level, and you're done. Changes are written into your agent's config immediately.
 
 ## Supported harnesses
 
@@ -32,27 +39,6 @@ Every harness below works side by side, each with its own configu:
 ## Required Node version
 
 Node 18.17+
-
-## Install
-
-```sh
-npm install -g agentfx     # no runtime dependencies
-```
-
-## Use
-
-```sh
-agentfx
-```
-
-Opens `http://localhost:4477`. Pick a sound per event, set volumes, done —
-changes are written into your agent's config immediately, with no apply step.
-
-- per-event volume (default 100%) and a master volume (default 70%)
-- a mute switch that keeps your bindings
-- a minimum gap between plays, per binding
-- a tool-name filter on Claude Code and Codex events that support one
-- 100+ bundled WAVs, plus your own uploads (10 MB each)
 
 ## Uninstalling — do this first
 
