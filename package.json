@@ -24,6 +24,7 @@
     "src",
     "web",
     "assets",
+    "CHANGELOG.md",
     "README.md",
     "LICENSE"
   ],
@@ -39,6 +40,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "smoke": "node scripts/smoke.js",
+    "bump": "node scripts/bump-version.js",
     "gen:sounds": "node scripts/gen-sounds.js"
   },
   "keywords": [
