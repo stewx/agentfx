@@ -1,16 +1,36 @@
 # agentfx
 
 Sound effects for AI coding agents. Bind a sound to "task completed", "after
-tool use" and more in a local web UI, and agentfx writes the hooks into your
-agent's config for you.
+tool use" and more, configured via a local web UI.
 
-Works with **Claude Code**, **Codex CLI**, **opencode** and **Pi**, side by side
-— each with its own sounds, in its own config format.
+Every harness below works side by side, each with its own configu:
+
+## Supported harnesses
+
+✅ Claude Code
+
+✅ Codex CLI
+
+✅ opencode 
+
+✅ Pi
+
+## Supported operating systems
+
+✅ Windows
+
+✅ macOS
+
+✅ Linux
+
+## Required Node version
+
+Node 18.17+
 
 ## Install
 
 ```sh
-npm install -g agentfx     # Node 18.17+, no runtime dependencies
+npm install -g agentfx     # no runtime dependencies
 ```
 
 ## Use
@@ -93,13 +113,12 @@ agentfx target rm <id>         Stop managing one, cleaning up its hooks first
 
 | | Claude Code | Codex CLI | opencode | Pi |
 | --- | --- | --- | --- | --- |
-| Global file | `~/.claude/settings.json` | `~/.codex/hooks.json` | `~/.config/opencode/plugin/agentfx.js` | `~/.pi/agent/extensions/agentfx.ts` |
 | Mechanism | JSON hook entries | JSON hook entries | a generated plugin | a generated extension |
-| Events | 9 | 11 | 9 | 9 |
 | Tool matcher | tool name (`Bash\|Edit`) | regex (`^Bash$`) | none | none |
 
-You can target any number of files instead — or as well — from the **Settings
-files** section of the UI, or with `agentfx target add`:
+Those go to each harness's global config by default. You can target any number
+of files instead — or as well — from the **Settings files** section of the UI,
+or with `agentfx target add`:
 
 | Scope | File | Who it affects |
 | --- | --- | --- |
@@ -162,9 +181,8 @@ that value on creation and never overrides one you set.
 <details>
 <summary><b>Platform support and audio formats</b></summary>
 
-Windows, macOS and Linux on Node 18.17+. The full test suite runs on all three
-in CI. Audio is optional: with no player available agentfx degrades to silence
-and logs why, rather than failing your agent's hooks.
+Audio is optional: with no player available agentfx degrades to silence and logs
+why, rather than failing your agent's hooks.
 
 | Platform | Backend | Plays |
 | --- | --- | --- |
