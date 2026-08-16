@@ -1,6 +1,6 @@
 {
   "name": "agentfx",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Sound effects for AI agent hooks. Pick a sound for TaskCompleted, PostToolUse and friends from a local web UI.",
   "type": "module",
   "license": "MIT",
