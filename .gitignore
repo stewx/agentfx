@@ -1,0 +1,11 @@
+node_modules/
+*.log
+.DS_Store
+.agentfx-dev/
+
+# c8: coverage/ is the report output, .nyc_output/ its raw temp data
+coverage/
+.nyc_output/
+
+soundpack
+unpublished

@@ -1,0 +1,71 @@
+name: Release
+
+# Publishing is driven by GitHub Releases: cut a release tagged v1.2.3 and this
+# ships that commit to npm. Nothing publishes on a plain push, so main can move
+# without cutting a version.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  # Trusted publishing: npm verifies this workflow's OIDC token instead of a
+  # long-lived token, so there is no npm secret in this repository.
+  id-token: write
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          # Trusted publishing needs Node >=22.14. No registry-url here: it
+          # writes an .npmrc auth line expecting NODE_AUTH_TOKEN, and OIDC
+          # supplies the credential instead.
+          node-version: '24'
+          cache: npm
+
+      # The npm bundled with Node 24 may predate 11.5.1, which is the first
+      # version that can exchange an OIDC token for a publish credential.
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
+
+      # A release can be cut from any commit, including one CI never saw, so
+      # the gates run again here rather than trusting a green check elsewhere.
+      - run: npm ci
+      - run: npm run lint
+
+      # Same reason as CI: without a volume-capable player the Linux backend
+      # branches are skipped rather than exercised.
+      - name: Install an audio backend
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm test
+
+      # The tag names the version users will get; package.json decides what npm
+      # actually stores. If they disagree, the release notes describe something
+      # other than what shipped.
+      - name: Verify tag matches package.json version
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          pkg="$(node -p 'require("./package.json").version')"
+          if [ "$tag" != "$pkg" ]; then
+            echo "::error::release tag v$tag does not match package.json version $pkg"
+            exit 1
+          fi
+
+      # CI only ever runs from a checkout, where every file is present whether
+      # or not `files` lists it. This is the one check that the published
+      # tarball is complete: install it as a user would and run the binary.
+      - name: Verify the packed tarball installs and runs
+        run: |
+          npm pack
+          npm install -g "./agentfx-$(node -p 'require("./package.json").version').tgz"
+          agentfx --version
+
+      # --provenance is explicit: npm documents it as automatic for trusted
+      # publishing from a public repository, but reports of it being skipped
+      # are common enough that asking is cheaper than shipping unattested.
+      - name: Publish
+        run: npm publish --provenance

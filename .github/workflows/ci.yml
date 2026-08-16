@@ -1,0 +1,95 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# Least privilege: nothing here writes to the repository.
+permissions:
+  contents: read
+
+# A newer push makes an in-flight run for the same ref pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: test · ${{ matrix.os }} · Node ${{ matrix.node }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      # Which platforms fail is the whole signal — this project's bugs are
+      # usually specific to one, so let the others finish and report.
+      fail-fast: false
+      matrix:
+        # Windows, macOS and Linux are all supported, and the process spawning,
+        # PATH lookup and path handling differ on each.
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        # `node --test` only gained glob support in Node 21, so the full suite
+        # cannot run at the >=18.17 engines floor. That floor is covered by the
+        # smoke job below instead.
+        node: ['22', '24']
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      # Without a volume-capable player installed, `linuxBackend()` finds
+      # nothing and every Linux backend branch is skipped rather than tested.
+      # ffplay is the preferred backend and decodes every supported format.
+      - name: Install an audio backend (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - run: npm ci
+      - run: npm test
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+
+  coverage:
+    # Deliberately Windows: it is the only platform that can measure the audio
+    # endpoint, so `src/audio-probe.js` and the measured branch of
+    # `src/doctor/audio.js` are reachable here and nowhere else. The thresholds
+    # in .c8rc.json and the per-file floor are calibrated against this run.
+    name: coverage
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run test:coverage:check
+
+  engines-floor:
+    # `engines` claims Node >=18.17. Nothing else in CI runs there, so without
+    # this a change using a newer builtin would ship and only fail for users on
+    # the floor. No `npm ci`: the package has no runtime dependencies and the
+    # smoke script imports only node: builtins and src/ — which is the point.
+    name: smoke · Node 18.17 (engines floor) · ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '18.17'
+      - run: node scripts/smoke.js

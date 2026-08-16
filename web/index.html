@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>agentfx</title>
+    <link rel="stylesheet" href="/styles.css" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ctext y='26' font-size='26'%3E%F0%9F%94%8A%3C/text%3E%3C/svg%3E"
+    />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div>
+          <h1>agentfx</h1>
+          <p class="brand-sub" id="backend-info">sound effects for agent hooks</p>
+        </div>
+      </div>
+
+      <div class="topbar-controls">
+        <label class="master">
+          <span>Master volume</span>
+          <input id="master-volume" type="range" min="0" max="100" step="1" />
+          <output id="master-volume-value">70%</output>
+        </label>
+        <label class="switch" title="Mute every agentfx sound without changing your bindings">
+          <input id="global-enabled" type="checkbox" />
+          <span class="switch-track"><span class="switch-thumb"></span></span>
+          <span class="switch-label">Enabled</span>
+        </label>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="sidenav" aria-label="Sections">
+        <ul id="sidenav-list" class="sidenav-list"></ul>
+      </nav>
+
+      <main>
+        <section id="agents" class="stack" aria-label="Agents"></section>
+
+        <section id="library" class="panel" aria-labelledby="library-heading">
+          <div class="panel-head">
+            <div>
+              <h2 id="library-heading">Sound library</h2>
+              <p class="muted" id="format-info">up to 10&nbsp;MB each</p>
+            </div>
+            <button id="upload-button" class="btn primary" type="button">Upload sounds</button>
+            <input id="file-input" type="file" accept="audio/*" multiple hidden />
+          </div>
+          <div id="dropzone" class="dropzone">Drop audio files here</div>
+          <ul id="sound-list" class="sound-list"></ul>
+        </section>
+        <footer class="footer">
+          Removing agentfx? Run <code>agentfx uninstall</code> <em>before</em>
+          <code>npm uninstall -g agentfx</code> — npm can't clean up the hooks on its own,
+          and they'd be left pointing at a command that no longer exists.
+        </footer>
+      </main>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

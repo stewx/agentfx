@@ -1,0 +1,15 @@
+{
+  "all": true,
+  "include": ["src/**/*.js"],
+  "exclude": ["test/**", "scripts/**", "web/**", "node_modules/**"],
+  "reporter": ["text"],
+  "check-coverage": true,
+  "lines": 90,
+  "functions": 90,
+  "branches": 80,
+  "watermarks": {
+    "lines": [90, 95],
+    "functions": [90, 95],
+    "branches": [80, 90]
+  }
+}

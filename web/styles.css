@@ -1,0 +1,783 @@
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --surface-2: #f0f2f5;
+  --border: #dfe3e9;
+  --text: #16181d;
+  --muted: #666e7c;
+  --accent: #4f46e5;
+  --accent-text: #ffffff;
+  --danger: #c0392b;
+  --ok: #1a7f4b;
+  --radius: 10px;
+  --shadow: 0 1px 2px rgba(16, 18, 22, 0.06), 0 6px 20px rgba(16, 18, 22, 0.05);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0e1014;
+    --surface: #16191f;
+    --surface-2: #1d2128;
+    --border: #2a2f38;
+    --text: #e8eaee;
+    --muted: #939bab;
+    --accent: #7c73ff;
+    --accent-text: #0e1014;
+    --danger: #ff6b5e;
+    --ok: #46d18a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 28px rgba(0, 0, 0, 0.3);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 ui-sans-serif, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  line-height: 1.25;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+  margin: 2px 0 0;
+}
+
+.mono {
+  font-family: ui-monospace, "SF Mono", "Cascadia Code", Consolas, monospace;
+  font-size: 12px;
+}
+
+/* ---------- top bar ---------- */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand h1 {
+  font-size: 17px;
+  letter-spacing: -0.01em;
+}
+
+.brand-sub {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.brand-mark {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: linear-gradient(140deg, var(--accent), color-mix(in srgb, var(--accent) 45%, #ff8a5c));
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16);
+}
+
+.topbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.master {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.master output {
+  min-width: 38px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* ---------- layout ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 28px;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+main {
+  /* `min-width: 0` so a long settings-file path stretches the column rather
+     than pushing the grid wider than the viewport. */
+  min-width: 0;
+  max-width: 940px;
+  padding: 24px 0 72px;
+  display: grid;
+  gap: 20px;
+}
+
+/* ---------- sidenav ---------- */
+
+.sidenav {
+  position: sticky;
+  /* Clears the sticky topbar; `activeNavId`'s marker line matches it. */
+  top: 78px;
+  align-self: start;
+  padding-top: 24px;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+}
+
+.sidenav-list {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sidenav-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  text-decoration: none;
+}
+
+.sidenav-link:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.sidenav-link.is-active {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  color: var(--text);
+  font-weight: 550;
+}
+
+/* A fixed box rather than the 1.35em the headings use: at this font size the
+   marks would land on fractional pixels, and the labels beside them have to
+   start on one straight edge down the list. */
+.sidenav-link .glyph {
+  width: 16px;
+  height: 16px;
+}
+
+/* The mark dims with the name it belongs to — a full-strength logo next to a
+   greyed label reads as a rendering slip rather than as "not installed here". */
+.sidenav-link.is-undetected .sidenav-label,
+.sidenav-link.is-undetected .glyph {
+  opacity: 0.6;
+}
+
+.sidenav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidenav-count {
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
+/* Land the heading below the topbar rather than behind it. */
+main .panel {
+  scroll-margin-top: 82px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+.stack {
+  display: grid;
+  gap: 20px;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.panel-head h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+
+/* The glyph in front of a name, in a panel heading and in the sidenav entry
+   that points at it. Sized in `em` so it tracks whatever text it sits beside
+   rather than a fixed pixel box.
+
+   Plain ones — the fixed sections, which have no vendor behind them — take the
+   colour of the text they lead, so a nav link's glyph moves with it from muted
+   to current. */
+.glyph {
+  flex: none;
+  width: 1.35em;
+  height: 1.35em;
+  fill: currentColor;
+}
+
+/* A harness's own mark instead keeps its vendor's ink. The two arrive as custom
+   properties on the element itself (see icons.js) so that the choice between
+   them is made here, by the same media query that flips everything else — the
+   alternative is JavaScript that has to watch for the reader changing theme.
+   `currentColor` is the fallback, which is what a mark added without a palette
+   gets. */
+.glyph.brand {
+  fill: var(--brand, currentColor);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glyph.brand {
+    fill: var(--brand-dark, currentColor);
+  }
+}
+
+/* ---------- folding a harness ---------- */
+
+.panel-head.foldable {
+  cursor: pointer;
+}
+
+/* There is no icon and no button, so the hover tint is the entire affordance —
+   at half strength it was applied but not readable as one. */
+.panel-head.foldable:hover {
+  background: var(--surface-2);
+}
+
+.panel-title {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.panel-title-text {
+  min-width: 0;
+}
+
+/* The control itself: invisible, and stretched over the title block so the
+   header reads as one clickable strip while the heading below it stays a
+   heading. Everything it covers is text, so nothing is buried under it. */
+.panel-hit {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.panel-hit:focus-visible {
+  border-radius: 8px;
+  outline-offset: 3px;
+}
+
+/* Folded up, the header is the panel's bottom edge — a rule there would float
+   above the rounded corner with nothing under it. */
+.panel:has(> .panel-body[hidden]) .panel-head {
+  border-bottom: 0;
+}
+
+.agent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+/* ---------- settings file targets ---------- */
+
+.targets {
+  padding: 14px 20px 16px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 55%, transparent);
+}
+
+.targets-head h3 {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.targets-head .muted {
+  margin-bottom: 10px;
+}
+
+.target {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.target.is-off {
+  opacity: 0.55;
+}
+
+.target-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.target-scope {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 550;
+}
+
+.target-warn {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--danger);
+}
+
+.target-path {
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.target-add {
+  margin-top: 12px;
+}
+
+.target-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.target-add-row select {
+  flex: 0 0 auto;
+  width: auto;
+  min-width: 180px;
+}
+
+.target-add-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ---------- event rows ---------- */
+
+.event {
+  display: grid;
+  grid-template-columns: minmax(190px, 1.1fr) minmax(180px, 1fr) auto auto auto;
+  gap: 14px;
+  align-items: center;
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.event:last-child {
+  border-bottom: 0;
+}
+
+.event.is-off {
+  opacity: 0.55;
+}
+
+.event-name {
+  font-weight: 550;
+  font-size: 14px;
+}
+
+.event-id {
+  margin-left: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: ui-monospace, Consolas, monospace;
+}
+
+.event-desc {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.event-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volume {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.volume input {
+  width: 92px;
+}
+
+.volume output {
+  min-width: 34px;
+  font-variant-numeric: tabular-nums;
+}
+
+.interval {
+  font-size: 12px;
+  padding: 5px 8px;
+  color: var(--muted);
+}
+
+.matcher {
+  grid-column: 2 / -1;
+  margin-top: -4px;
+}
+
+/* ---------- form controls ---------- */
+
+select,
+input[type="text"] {
+  width: 100%;
+  padding: 7px 9px;
+  color: var(--text);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font: inherit;
+  font-size: 13px;
+}
+
+select:focus-visible,
+input:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+.btn {
+  padding: 7px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.btn.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-text);
+  font-weight: 550;
+}
+
+.btn.icon {
+  padding: 6px 9px;
+  line-height: 1;
+}
+
+.btn.quiet {
+  background: transparent;
+  color: var(--muted);
+}
+
+.btn.danger:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+/* ---------- switch ---------- */
+
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--muted);
+  user-select: none;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switch-track {
+  width: 34px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--border);
+  padding: 2px;
+  transition: background 0.15s ease;
+}
+
+.switch-thumb {
+  display: block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+.switch input:checked + .switch-track {
+  background: var(--accent);
+}
+
+.switch input:checked + .switch-track .switch-thumb {
+  transform: translateX(14px);
+}
+
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---------- badges ---------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.badge.ok {
+  color: var(--ok);
+  border-color: color-mix(in srgb, var(--ok) 40%, var(--border));
+}
+
+.badge.warn {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+}
+
+.badge .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------- sound library ---------- */
+
+.dropzone {
+  margin: 16px 20px 0;
+  padding: 18px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius);
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dropzone.dragging {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.sound-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+}
+
+.sound {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 20px;
+  border-top: 1px solid var(--border);
+}
+
+.sound-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sound-meta {
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.footer {
+  padding: 4px 4px 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+  text-align: center;
+}
+
+.footer code {
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 11px;
+}
+
+.empty {
+  padding: 22px 20px;
+  color: var(--muted);
+  font-size: 13px;
+  text-align: center;
+}
+
+/* ---------- toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translate(-50%, 12px);
+  padding: 9px 16px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 13px;
+  box-shadow: var(--shadow);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+.toast.error {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* Below this the two columns do not both fit, so the nav becomes a scrollable
+   strip above the content rather than squeezing the panels. */
+@media (max-width: 900px) {
+  .layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+
+  .sidenav {
+    position: static;
+    max-height: none;
+    padding-top: 16px;
+  }
+
+  .sidenav-list {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  main {
+    padding-top: 16px;
+  }
+}
+
+@media (max-width: 720px) {
+  .event {
+    grid-template-columns: 1fr;
+  }
+
+  .matcher {
+    grid-column: 1;
+  }
+
+  .topbar {
+    align-items: flex-start;
+  }
+}

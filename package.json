@@ -1,0 +1,60 @@
+{
+  "name": "agentfx",
+  "version": "0.1.0",
+  "description": "Sound effects for AI agent hooks. Pick a sound for TaskCompleted, PostToolUse and friends from a local web UI.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Stewart Rand",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stewx/agentfx.git"
+  },
+  "bugs": {
+    "url": "https://github.com/stewx/agentfx/issues"
+  },
+  "homepage": "https://github.com/stewx/agentfx#readme",
+  "bin": {
+    "agentfx": "bin/agentfx.js"
+  },
+  "engines": {
+    "node": ">=18.17"
+  },
+  "files": [
+    "bin",
+    "src",
+    "web",
+    "assets",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "start": "node bin/agentfx.js",
+    "test": "node --test \"test/**/*.test.js\"",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:e2e": "node --test \"test/e2e/**/*.test.js\"",
+    "test:watch": "node --test --watch \"test/**/*.test.js\"",
+    "test:coverage": "c8 --reporter=text --reporter=html node --test \"test/**/*.test.js\"",
+    "test:coverage:check": "c8 --check-coverage node --test \"test/**/*.test.js\" && npm run test:coverage:per-file",
+    "test:coverage:per-file": "c8 report --check-coverage --per-file --exclude src/cli/serve.js --lines 80 --functions 75 --branches 55",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "smoke": "node scripts/smoke.js",
+    "gen:sounds": "node scripts/gen-sounds.js"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "hooks",
+    "sound",
+    "sound-effects",
+    "ai-agent",
+    "notifications"
+  ],
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "c8": "^12.0.0",
+    "eslint": "^10.8.1",
+    "eslint-plugin-n": "^18.3.0"
+  }
+}
