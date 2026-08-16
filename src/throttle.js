@@ -58,7 +58,7 @@ export function holdRemaining(agentId, event, minInterval, now = Date.now()) {
     // not held, so the caller re-stamps rather than muting the binding until
     // time catches up.
     if (Math.abs(sinceMs) < minMs) {
-      return { held: true, sinceMs, minMs, remainingMs: minMs - Math.abs(sinceMs) };
+      return { held: true, sinceMs: Math.abs(sinceMs), minMs, remainingMs: minMs - Math.abs(sinceMs) };
     }
   } catch {
     // No marker yet — this binding has never fired.
