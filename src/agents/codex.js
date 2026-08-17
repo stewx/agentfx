@@ -128,6 +128,30 @@ export const SCOPES = {
 /** Codex matchers are regexes, so a blank one means "omit the filter". */
 const matcherFor = (matcher) => (matcher ? matcher : undefined);
 
+/**
+ * No `async: true` here, however much Codex looks like it should take one.
+ *
+ * Codex documents the flag and its published config schema accepts it, but the
+ * binary has not implemented it. Codex CLI 0.147.0 answers a hook carrying the
+ * field with
+ *
+ *   skipping async hook in <CODEX_HOME>/hooks.json: async hooks are not
+ *   supported yet
+ *
+ * and never runs it. agentfx wrote that flag on every Codex hook, so every
+ * Codex sound was dropped — while the file validated, `doctor` reported the
+ * hooks installed, and nothing anywhere said why it was quiet.
+ *
+ * So Codex is treated as Antigravity is: run synchronously, with a timeout
+ * bounding the stall. `timeout` is in seconds. The hook returns as soon as it
+ * has handed the sound to a detached player, so this is a bound on a broken
+ * install rather than a wait anybody should ever see. Three rather than
+ * Antigravity's five because Codex caps `SessionEnd` hooks at three seconds,
+ * and a value the agent has to clamp is a value it might instead reject —
+ * which is the mistake this comment exists to record.
+ */
+const hookFields = { timeout: 3 };
+
 export const { eventIds, resolveTargetPath, listTargets, sync, status, inspect } = makeHooksAdapter(
-  { id, events, scopes: SCOPES, defaultSettingsPath, detect, matcherFor }
+  { id, events, scopes: SCOPES, defaultSettingsPath, detect, matcherFor, hookFields }
 );

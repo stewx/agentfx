@@ -293,11 +293,17 @@ export async function hooksStatus(targets, eventIds, container = 'hooks') {
 /**
  * How an agent is told not to make its user wait for a sound effect.
  *
- * Claude Code and Codex both understand `async: true`: they run the hook in the
- * background and carry on. Older versions that do not know the field simply
- * ignore it and run the hook as before. Antigravity has no such flag — it
- * awaits every hook — so its adapter passes a short timeout instead, which
- * bounds the damage rather than avoiding it.
+ * Claude Code understands `async: true`: it runs the hook in the background and
+ * carries on. It is the only one here that does. Antigravity has no such flag
+ * and awaits every hook; Codex documents one but has not implemented it, and
+ * skips any hook carrying it (see codex.js). Both take a short timeout instead,
+ * which bounds the damage rather than avoiding it.
+ *
+ * The assumption this replaces — that an agent which does not know the field
+ * would simply ignore it — is what made the Codex bug silent and total: the
+ * file still validated against Codex's own schema, `doctor` still reported the
+ * hook installed, and no sound ever played. A flag an agent does not honour is
+ * not free, so every adapter states its own answer rather than inheriting one.
  */
 export const ASYNC_HOOK = { async: true };
 

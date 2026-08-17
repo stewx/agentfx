@@ -78,8 +78,33 @@ test('sync writes hooks in the shape Codex reads', async (t) => {
   assert.equal(hooks.Stop[0].hooks.length, 1);
   assert.equal(hooks.Stop[0].hooks[0].type, 'command');
   assert.match(hooks.Stop[0].hooks[0].command, /play codex Stop$/);
-  assert.equal(hooks.Stop[0].hooks[0].async, true, 'Codex must not wait for a sound either');
   assert.ok(!('matcher' in hooks.Stop[0]), 'non-tool events carry no matcher');
+});
+
+test('codex hooks are never written async, and stall for at most 3 seconds', async (t) => {
+  // Codex CLI 0.147.0 skips any hook carrying `async: true` outright —
+  // "async hooks are not supported yet" — so writing the flag silently cost
+  // every Codex user every sound. The file was valid, `doctor` was happy, and
+  // the hook simply never ran. Both halves are asserted on every event because
+  // one event written the old way is one event that goes quiet.
+  //
+  // Note what this test cannot do: it reads back what agentfx wrote and checks
+  // it against what agentfx meant to write. It is the workflow that runs the
+  // real binary that would have caught the original bug.
+  const box = sandbox('codex-sync-hook');
+  t.after(() => box.cleanup());
+
+  const bindings = Object.fromEntries(codex.events.map((event) => [event.id, bind()]));
+  await codex.sync(cfg(bindings));
+
+  const written = Object.values(readHooks(box).hooks).flatMap((entries) =>
+    entries.flatMap((entry) => entry.hooks)
+  );
+  assert.equal(written.length, codex.events.length, 'every event installed');
+  for (const hook of written) {
+    assert.ok(!('async' in hook), `${hook.command}: Codex skips a hook that declares async`);
+    assert.equal(hook.timeout, 3, `${hook.command}: bounded, and within the SessionEnd cap`);
+  }
 });
 
 test('codex matchers are regexes and are omitted when blank', async (t) => {
