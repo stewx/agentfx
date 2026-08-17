@@ -4,6 +4,14 @@ All notable changes to agentfx, newest first. Versions follow [semver][].
 
 [semver]: https://semver.org/spec/v2.0.0.html
 
+## 0.3.1 - 2026-08-17
+
+- Fix Codex hooks never firing: Codex skips any hook declaring `async: true` — a
+  flag it documents but has not implemented — so every Codex sound was dropped
+  while the file still validated and `doctor` still reported the hooks installed
+  Codex hooks are now written synchronously with a 3-second timeout, the cap
+  Codex applies to `SessionEnd`
+
 ## 0.3.0 - 2026-08-16
 
 - Add Antigravity CLI support: hooks are written to Antigravity's customization
